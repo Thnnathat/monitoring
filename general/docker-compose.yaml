@@ -1,0 +1,60 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    user: root
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/web.yml:/etc/prometheus/web.yml
+      - ./prometheus_data:/prometheus
+    ports:
+      - 9090:9090
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention=${PROMETHEUS_RETENTION:-24h}
+      - --web.config.file=/etc/prometheus/web.yml
+      - --web.enable-lifecycle
+    networks:
+      - monitor_net
+
+  promlens:
+    image: prom/promlens
+    container_name: promlens
+    restart: always
+    ports:
+      - 9089:8080
+    networks:
+      - monitor_net
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    restart: always
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    pid: host
+    networks:
+      - monitor_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    user: root
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    networks:
+      - monitor_net
+
+
+networks:
+  monitor_net:
+    driver: bridge
