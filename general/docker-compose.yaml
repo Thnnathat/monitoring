@@ -54,6 +54,30 @@ services:
     networks:
       - monitor_net
 
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: loki
+    restart: always
+    volumes:
+      - ./loki/loki-config.yaml:/mnt/config/loki-config.yaml
+    ports:
+      - "3100:3100"
+    command: -config.file=/mnt/config/loki-config.yaml
+    networks:
+      - monitor_net
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    restart: always
+    container_name: promtail
+    volumes:
+      - ./loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
+      - /var/log:/var/log
+    depends_on:
+      - loki
+    command: -config.file=/mnt/config/promtail-config.yaml
+    networks:
+      - monitor_net
 
 networks:
   monitor_net:
